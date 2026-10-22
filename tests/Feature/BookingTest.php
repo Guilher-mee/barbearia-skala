@@ -103,11 +103,15 @@ test('seeds services and nonoverlapping bookings within business hours without d
     }
 });
 
-test('skips seeded time slots that overlap an existing booking for any service', function () {
+test('skips seeded time slots that overlap an existing booking for any service', function (string $startAt, string $endAt) {
     $this->travelTo(Carbon::parse('2026-10-22 12:00:00', 'UTC'));
-    $booking = Booking::factory()->create([
-        'start_at' => '2026-10-23 12:15:00',
-        'end_at' => '2026-10-23 12:45:00',
+    $service = Service::factory()->create([
+        'name' => 'Serviço existente',
+        'duration_minutes' => 30,
+    ]);
+    $booking = Booking::factory()->for($service)->create([
+        'start_at' => $startAt,
+        'end_at' => $endAt,
     ]);
 
     $this->seed(BookingSeeder::class);
@@ -119,4 +123,35 @@ test('skips seeded time slots that overlap an existing booking for any service',
         ->where('start_at', '<', $booking->end_at)
         ->where('end_at', '>', $booking->start_at)
         ->exists())->toBeFalse();
-});
+})->with([
+    'existing booking overlaps the end' => ['2026-10-23 12:15:00', '2026-10-23 12:45:00'],
+    'existing booking overlaps the start' => ['2026-10-23 11:45:00', '2026-10-23 12:15:00'],
+    'existing booking is inside the slot' => ['2026-10-23 12:05:00', '2026-10-23 12:20:00'],
+    'existing booking contains the slot' => ['2026-10-23 11:45:00', '2026-10-23 12:45:00'],
+    'existing booking matches the slot' => ['2026-10-23 12:00:00', '2026-10-23 12:30:00'],
+]);
+
+test('seeds adjacent slots using the existing service duration without treating them as overlaps', function (string $startAt, string $endAt) {
+    $this->travelTo(Carbon::parse('2026-10-22 12:00:00', 'UTC'));
+    $service = Service::factory()->create([
+        'name' => 'Corte de cabelo',
+        'duration_minutes' => 15,
+    ]);
+    $booking = Booking::factory()->for($service)->create([
+        'start_at' => $startAt,
+        'end_at' => $endAt,
+    ]);
+
+    $this->seed(BookingSeeder::class);
+
+    $this->assertDatabaseCount('bookings', 4);
+    $this->assertModelExists($booking);
+    $this->assertDatabaseHas('bookings', [
+        'service_id' => $service->id,
+        'start_at' => '2026-10-23 12:00:00',
+        'end_at' => '2026-10-23 12:15:00',
+    ]);
+})->with([
+    'existing booking ends when the slot starts' => ['2026-10-23 11:45:00', '2026-10-23 12:00:00'],
+    'existing booking starts when the slot ends' => ['2026-10-23 12:15:00', '2026-10-23 12:45:00'],
+]);
