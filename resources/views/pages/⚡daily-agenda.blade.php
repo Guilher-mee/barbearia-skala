@@ -63,7 +63,6 @@ class extends Component
 
 <div>
     <h1 class="text-3xl font-bold">Agenda do dia</h1>
-    <p class="mt-2 text-stone-600">Atendimentos em {{ config('booking.timezone') }}.</p>
     <form wire:submit="refreshAgenda" class="mt-6 flex flex-wrap items-end gap-4">
         <div>
             <label for="agenda-date" class="mb-2 block font-medium">Data da agenda</label>
