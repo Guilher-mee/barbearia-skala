@@ -14,13 +14,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $service_id
  * @property string $customer_name
  * @property string $customer_phone
+ * @property string|null $price_at_booking
  * @property CarbonInterface|null $start_at
  * @property CarbonInterface|null $end_at
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
  * @property-read Service|null $service
  */
-#[Fillable(['service_id', 'customer_name', 'customer_phone', 'start_at', 'end_at'])]
+#[Fillable(['service_id', 'customer_name', 'customer_phone', 'start_at', 'end_at', 'price_at_booking'])]
 class Booking extends Model
 {
     /** @use HasFactory<BookingFactory> */
@@ -47,6 +48,7 @@ class Booking extends Model
         return [
             'start_at' => 'datetime',
             'end_at' => 'datetime',
+            'price_at_booking' => 'decimal:2',
         ];
     }
 }

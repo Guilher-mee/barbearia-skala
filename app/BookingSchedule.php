@@ -107,6 +107,7 @@ class BookingSchedule
                     'service_id' => $service->id,
                     'customer_name' => $validated['customer_name'],
                     'customer_phone' => $validated['customer_phone'],
+                    'price_at_booking' => $service->price,
                     'start_at' => $start->utc(),
                     'end_at' => $end->utc(),
                 ]);

@@ -30,6 +30,7 @@ class BookingSeeder extends Seeder
                 Booking::factory()->for($service)->create([
                     'start_at' => $startAt->copy(),
                     'end_at' => $endAt,
+                    'price_at_booking' => $service->price,
                 ]);
             }
 

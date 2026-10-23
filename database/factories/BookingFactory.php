@@ -21,6 +21,7 @@ class BookingFactory extends Factory
     {
         return [
             'service_id' => Service::factory(),
+            'price_at_booking' => fn (array $attributes): ?string => Service::whereKey($attributes['service_id'])->first()?->price,
             'customer_name' => fake()->name(),
             'customer_phone' => fake()->numerify('+55119########'),
             'start_at' => Carbon::tomorrow('America/Sao_Paulo')->setTime(9, 0)->utc(),
