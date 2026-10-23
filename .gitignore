@@ -1,36 +1,26 @@
-/.phpunit.cache
-/node_modules
-/public/build
+# Environment files and credentials
+.env
+.env.*
+!/.env.example
+/auth.json
+
+# Dependencies and generated frontend output
+/vendor/
+/node_modules/
+/public/build/
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+
+# Test caches and runtime artifacts
+/.phpunit.cache/
+/.phpunit.result.cache
 /storage/*.key
-/storage/pail
-/vendor
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
-/.agents
-/.amp
-/.claude
-/.cursor
-/.factory
-/.grok
-/.junie
-/.kiro
-/.pi
+/storage/pail/
+
+# Project-local agent configuration and instructions
+/.codex/
+/.agents/
 /.mcp.json
 /AGENTS.md
 /CLAUDE.md
