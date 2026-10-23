@@ -39,7 +39,7 @@ class extends Component
             'date.required' => 'Selecione uma data.',
             'date.date_format' => 'Informe uma data válida.',
         ]);
-        unset($this->bookings);
+        unset($this->bookings, $this->summary);
     }
 
     /** @return Collection<int, Booking> */
@@ -59,6 +59,33 @@ class extends Component
             ->orderBy('id')
             ->get();
     }
+
+    /** @return array{booking_count: int, unpriced_count: int, total_cents: int, total_formatted: string} */
+    #[Computed]
+    public function summary(): array
+    {
+        $totalCents = 0;
+        $unpricedCount = 0;
+        $bookings = $this->bookings;
+
+        foreach ($bookings as $booking) {
+            if ($booking->price_at_booking === null) {
+                $unpricedCount++;
+
+                continue;
+            }
+
+            [$whole, $fraction] = explode('.', $booking->price_at_booking);
+            $totalCents += ((int) $whole * 100) + (int) $fraction;
+        }
+
+        return [
+            'booking_count' => $bookings->count(),
+            'unpriced_count' => $unpricedCount,
+            'total_cents' => $totalCents,
+            'total_formatted' => number_format(intdiv($totalCents, 100), 0, ',', '.').','.str_pad((string) ($totalCents % 100), 2, '0', STR_PAD_LEFT),
+        ];
+    }
 };
 ?>
 
@@ -75,6 +102,23 @@ class extends Component
     </form>
 
     @if (! $errors->has('date'))
+        <section aria-labelledby="daily-summary-heading" class="mt-6 rounded-xl border border-stone-200 bg-white p-5">
+            <h2 id="daily-summary-heading" class="text-xl font-semibold">Resumo do dia</h2>
+            <dl class="mt-4 flex flex-wrap gap-8">
+                <div>
+                    <dt class="text-stone-600">Agendamentos do dia</dt>
+                    <dd class="text-2xl font-bold">{{ $this->summary['booking_count'] }}</dd>
+                </div>
+                <div>
+                    <dt class="text-stone-600">Valor agendado (previsto)</dt>
+                    <dd class="text-2xl font-bold">R$ {{ $this->summary['total_formatted'] }}</dd>
+                </div>
+            </dl>
+            <p class="mt-3 text-sm text-stone-600">O valor previsto não representa pagamentos recebidos.</p>
+            @if ($this->summary['unpriced_count'] > 0)
+                <p role="status" class="mt-3 text-sm text-amber-800">Agendamentos sem valor registrado: {{ $this->summary['unpriced_count'] }}. Esses valores não estão incluídos no total.</p>
+            @endif
+        </section>
         <div class="mt-6 flex flex-col gap-3">
             @forelse ($this->bookings as $booking)
                 <article wire:key="booking-{{ $booking->id }}" class="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
