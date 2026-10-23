@@ -4,6 +4,7 @@ use App\Models\Booking;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -18,7 +19,7 @@ class extends Component
 
     public function boot(): void
     {
-        abort_unless(app()->environment(['local', 'testing']), 404);
+        Gate::authorize('access-staff-area');
     }
 
     public function mount(): void

@@ -13,12 +13,20 @@
             <a href="{{ route('home') }}" class="text-lg font-bold">Barbearia</a>
             <div class="flex gap-5 text-sm font-medium">
                 <a href="{{ route('home') }}" class="hover:underline">Agendar</a>
-                @if (app()->environment(['local', 'testing']) && Route::has('agenda'))
-                    <a href="{{ route('agenda') }}" class="hover:underline">Agenda do barbeiro</a>
-                @endif
-                @if (app()->environment(['local', 'testing']) && Route::has('services'))
+                @can('access-staff-area')
+                    <a href="{{ route('agenda') }}" class="hover:underline">Agenda</a>
                     <a href="{{ route('services') }}" class="hover:underline">Serviços</a>
-                @endif
+                @else
+                    @guest
+                        <a href="{{ route('login') }}" class="hover:underline">Área do barbeiro</a>
+                    @endguest
+                @endcan
+                @auth
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="hover:underline">Sair</button>
+                    </form>
+                @endauth
             </div>
         </nav>
     </header>

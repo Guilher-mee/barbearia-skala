@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\Service;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
 
 test('opens the service page through the shared navigation without built assets', function () {
+    $this->actingAs(User::factory()->staff()->create());
     $this->get(route('services'))->assertOk()
         ->assertSee('Serviços da barbearia')->assertSee('Cadastrar serviço')
         ->assertSee('Nenhum serviço cadastrado.')->assertDontSee('/build/assets/');
@@ -13,6 +15,7 @@ test('opens the service page through the shared navigation without built assets'
 });
 
 test('creates a service with trimmed name and resets the form after saving', function () {
+    $this->actingAs(User::factory()->staff()->create());
     Livewire::test('pages::manage-services')
         ->set('name', '  Corte  ')->set('duration_minutes', '40')->set('price', '50.00')
         ->call('save')->assertHasNoErrors()->assertSet('saved', true)
@@ -26,6 +29,7 @@ test('creates a service with trimmed name and resets the form after saving', fun
 });
 
 test('lists services in alphabetical order with BRL prices', function () {
+    $this->actingAs(User::factory()->staff()->create());
     Service::factory()->create(['name' => 'Corte', 'duration_minutes' => 40, 'price' => '50.90']);
     Service::factory()->create(['name' => 'Barba', 'duration_minutes' => 20, 'price' => '30.00']);
 
@@ -36,6 +40,7 @@ test('lists services in alphabetical order with BRL prices', function () {
 });
 
 test('allows different services to share a name', function () {
+    $this->actingAs(User::factory()->staff()->create());
     Service::factory()->create(['name' => 'Corte']);
 
     Livewire::test('pages::manage-services')
@@ -46,6 +51,7 @@ test('allows different services to share a name', function () {
 });
 
 test('accepts valid duration and price boundaries', function (string $duration, string $price, string $expectedPrice) {
+    $this->actingAs(User::factory()->staff()->create());
     Livewire::test('pages::manage-services')
         ->set('name', 'Serviço')->set('duration_minutes', $duration)->set('price', $price)
         ->call('save')->assertHasNoErrors();
@@ -59,6 +65,7 @@ test('accepts valid duration and price boundaries', function (string $duration, 
 ]);
 
 test('shows all required field errors without saving a service', function () {
+    $this->actingAs(User::factory()->staff()->create());
     Livewire::test('pages::manage-services')->call('save')
         ->assertHasErrors(['name', 'duration_minutes', 'price'])
         ->assertSee('Informe o nome do serviço.')->assertSee('Informe a duração do serviço.')->assertSee('Informe o preço do serviço.');
@@ -67,6 +74,7 @@ test('shows all required field errors without saving a service', function () {
 });
 
 test('rejects invalid service fields while retaining the form values', function (string $field, string $value, string $message) {
+    $this->actingAs(User::factory()->staff()->create());
     $component = Livewire::test('pages::manage-services')
         ->set('name', 'Corte')->set('duration_minutes', '40')->set('price', '50.00')
         ->set($field, $value)->call('save')
@@ -94,6 +102,7 @@ test('rejects invalid service fields while retaining the form values', function 
 ]);
 
 test('escapes service names in the list and in the public booking form', function () {
+    $this->actingAs(User::factory()->staff()->create());
     Service::factory()->create(['name' => '<script>alert(1)</script>']);
 
     Livewire::test('pages::manage-services')
@@ -104,6 +113,7 @@ test('escapes service names in the list and in the public booking form', functio
 });
 
 test('books a newly registered service and shows it in the daily agenda', function () {
+    $this->actingAs(User::factory()->staff()->create());
     $this->travelTo(CarbonImmutable::parse('2026-10-22 12:00:00', 'UTC'));
     Livewire::test('pages::manage-services')
         ->set('name', 'Corte')->set('duration_minutes', '40')->set('price', '50.00')
@@ -124,12 +134,13 @@ test('books a newly registered service and shows it in the daily agenda', functi
         ->assertSee('Corte')->assertSee('Ana Silva')->assertSee('09:40')->assertSee('10:20');
 });
 
-test('rejects service page requests and livewire actions outside demo environments', function () {
+test('rejects service page requests and livewire actions after permission is revoked', function () {
+    $this->actingAs(User::factory()->staff()->create());
     $component = Livewire::test('pages::manage-services')
         ->set('name', 'Corte')->set('duration_minutes', '40')->set('price', '50.00');
-    app()->detectEnvironment(fn (): string => 'production');
+    User::whereKey(auth()->id())->update(['is_staff' => false]);
 
-    $this->get('/servicos')->assertNotFound();
-    $component->call('save')->assertNotFound();
+    $this->get('/servicos')->assertForbidden();
+    $component->call('save')->assertForbidden();
     $this->assertDatabaseCount('services', 0);
 });

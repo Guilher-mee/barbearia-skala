@@ -2,6 +2,7 @@
 
 use App\Models\Service;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -24,7 +25,7 @@ class extends Component
 
     public function boot(): void
     {
-        abort_unless(app()->environment(['local', 'testing']), 404);
+        Gate::authorize('access-staff-area');
     }
 
     public function updated(): void

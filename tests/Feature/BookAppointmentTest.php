@@ -2,6 +2,7 @@
 
 use App\Models\Booking;
 use App\Models\Service;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
 
@@ -226,6 +227,7 @@ test('refreshes slot states after a conflict and retains customer details', func
 });
 
 test('books through calendar actions and displays the persisted appointment in the correct daily agenda', function () {
+    $this->actingAs(User::factory()->staff()->create());
     $service = Service::factory()->create(['name' => 'Corte visual', 'duration_minutes' => 40]);
     $agenda = Livewire::test('pages::daily-agenda')->set('date', '2026-10-23');
 
