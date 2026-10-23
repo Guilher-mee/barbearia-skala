@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,13 +16,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(BookingSeeder::class);
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('Os dados de demonstração só podem ser preparados em local ou testing.');
+        }
 
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        DB::transaction(function (): void {
+            $this->call([DemoStaffSeeder::class, ServiceSeeder::class]);
+        });
     }
 }

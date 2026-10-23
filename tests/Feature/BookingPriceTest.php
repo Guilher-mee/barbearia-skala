@@ -4,7 +4,7 @@ use App\BookingSchedule;
 use App\Models\Booking;
 use App\Models\Service;
 use Carbon\CarbonImmutable;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\BookingSeeder;
 
 test('captures the service price on booking and ignores client supplied prices', function (string $price) {
     $this->travelTo(CarbonImmutable::parse('2026-10-22 12:00:00', 'UTC'));
@@ -47,7 +47,9 @@ test('uses the associated service price in the booking factory', function () {
 test('records seeded prices even when model events are disabled', function () {
     $this->travelTo(CarbonImmutable::parse('2026-10-22 12:00:00', 'UTC'));
 
-    $this->seed(DatabaseSeeder::class);
+    Booking::withoutEvents(function (): void {
+        $this->seed(BookingSeeder::class);
+    });
 
     $this->assertDatabaseCount('bookings', 3);
     expect(Booking::with('service')->orderBy('start_at')->get()->pluck('price_at_booking')->all())
