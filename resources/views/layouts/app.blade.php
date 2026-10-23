@@ -16,6 +16,9 @@
                 @if (app()->environment(['local', 'testing']) && Route::has('agenda'))
                     <a href="{{ route('agenda') }}" class="hover:underline">Agenda do barbeiro</a>
                 @endif
+                @if (app()->environment(['local', 'testing']) && Route::has('services'))
+                    <a href="{{ route('services') }}" class="hover:underline">Serviços</a>
+                @endif
             </div>
         </nav>
     </header>

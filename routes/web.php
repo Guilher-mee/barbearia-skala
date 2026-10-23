@@ -6,4 +6,5 @@ Route::livewire('/', 'pages::book-appointment')->name('home');
 
 if (app()->environment(['local', 'testing'])) {
     Route::livewire('/agenda', 'pages::daily-agenda')->name('agenda');
+    Route::livewire('/servicos', 'pages::manage-services')->name('services');
 }
