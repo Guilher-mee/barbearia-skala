@@ -4,6 +4,7 @@ use App\BookingSchedule;
 use App\Models\Booking;
 use App\Models\Service;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
@@ -185,4 +186,55 @@ test('reloads the service duration at confirmation without changing earlier book
 
     expect($second->end_at->toDateTimeString())->toBe('2026-10-23 14:00:00');
     expect($first->fresh()->end_at->toDateTimeString())->toBe('2026-10-23 12:20:00');
+});
+
+test('returns complete public slot intervals within business hours', function (int $duration, int $count, string $lastStart, string $lastEnd) {
+    $service = Service::factory()->create(['duration_minutes' => $duration]);
+    $schedule = app(BookingSchedule::class);
+
+    $slots = $schedule->slotsForDate($service->id, '2026-10-23');
+
+    expect($slots)->toHaveCount($count)
+        ->and($slots[0])->toBe(['time' => '09:00', 'end_time' => $duration === 20 ? '09:20' : '09:40', 'status' => 'available'])
+        ->and($slots[array_key_last($slots)])->toBe(['time' => $lastStart, 'end_time' => $lastEnd, 'status' => 'available'])
+        ->and(array_column($slots, 'time'))->toBe($schedule->availableSlots($service->id, '2026-10-23'));
+})->with([[20, 27, '17:40', '18:00'], [40, 13, '17:00', '17:40']]);
+
+test('marks overlapping slots across services before classifying elapsed slots', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-22 12:40:00', 'UTC'));
+    $service = Service::factory()->create(['duration_minutes' => 20]);
+    Booking::factory()->create([
+        'customer_name' => 'Cliente privado', 'customer_phone' => '11999998888',
+        'start_at' => '2026-10-22 12:10:00', 'end_at' => '2026-10-22 12:40:00',
+    ]);
+
+    $slots = app(BookingSchedule::class)->slotsForDate($service->id, '2026-10-22');
+
+    expect(array_slice($slots, 0, 4))->toBe([
+        ['time' => '09:00', 'end_time' => '09:20', 'status' => 'booked'],
+        ['time' => '09:20', 'end_time' => '09:40', 'status' => 'booked'],
+        ['time' => '09:40', 'end_time' => '10:00', 'status' => 'past'],
+        ['time' => '10:00', 'end_time' => '10:20', 'status' => 'available'],
+    ]);
+    foreach ($slots as $slot) {
+        expect(array_keys($slot))->toBe(['time', 'end_time', 'status']);
+    }
+});
+
+test('reads occupied intervals once for the selected day without loading personal data', function () {
+    $service = Service::factory()->create(['duration_minutes' => 20]);
+    Booking::factory()->create(['start_at' => '2026-10-24 12:00:00', 'end_at' => '2026-10-24 21:00:00']);
+    DB::enableQueryLog();
+
+    try {
+        $slots = app(BookingSchedule::class)->slotsForDate($service->id, '2026-10-23');
+        $queries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], '"bookings"'))->values();
+
+        expect(array_unique(array_column($slots, 'status')))->toBe(['available'])
+            ->and($queries)->toHaveCount(1)
+            ->and($queries[0]['query'])->not->toContain('customer_name', 'customer_phone');
+    } finally {
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+    }
 });

@@ -16,6 +16,15 @@ class BookingSchedule
     /** @return list<string> */
     public function availableSlots(int|string $serviceId, string $date): array
     {
+        return array_column(array_filter(
+            $this->slotsForDate($serviceId, $date),
+            fn (array $slot): bool => $slot['status'] === 'available',
+        ), 'time');
+    }
+
+    /** @return list<array{time: string, end_time: string, status: 'available'|'booked'|'past'}> */
+    public function slotsForDate(int|string $serviceId, string $date): array
+    {
         $selection = $this->validateSelection($serviceId, $date);
         $service = $this->service($selection['service_id']);
         [$opening, $closing] = $this->businessHours($selection['date']);
@@ -26,19 +35,17 @@ class BookingSchedule
         $slots = [];
 
         for ($start = $opening; $start->addMinutes($service->duration_minutes)->lte($closing); $start = $start->addMinutes($service->duration_minutes)) {
-            if ($start->lte($now)) {
-                continue;
-            }
-
             $end = $start->addMinutes($service->duration_minutes);
             $hasOverlap = $bookings->contains(fn (Booking $booking): bool => $booking->start_at !== null
                 && $booking->end_at !== null
                 && $booking->start_at->lt($end)
                 && $booking->end_at->gt($start));
 
-            if (! $hasOverlap) {
-                $slots[] = $start->format('H:i');
-            }
+            $slots[] = [
+                'time' => $start->format('H:i'),
+                'end_time' => $end->format('H:i'),
+                'status' => $hasOverlap ? 'booked' : ($start->lte($now) ? 'past' : 'available'),
+            ];
         }
 
         return $slots;
